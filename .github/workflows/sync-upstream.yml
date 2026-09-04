@@ -1,0 +1,54 @@
+name: Sync from upstream
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      SYNC_PAT: ${{ secrets.SYNC_PAT }}
+      UPSTREAM_REPOSITORY: infiniflow/ragflow
+    steps:
+      - name: Check out the fork
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify sync credential
+        run: |
+          set -euo pipefail
+          test -n "${SYNC_PAT}" || {
+            echo "::error::Set the SYNC_PAT repository secret to a classic PAT with repo and workflow scopes."
+            exit 1
+          }
+
+      - name: Merge the upstream default branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --no-tags "https://github.com/${UPSTREAM_REPOSITORY}.git" \
+            "+refs/heads/${DEFAULT_BRANCH}:refs/remotes/upstream/${DEFAULT_BRANCH}"
+          git checkout -B "${DEFAULT_BRANCH}" "origin/${DEFAULT_BRANCH}"
+
+          if git merge-base --is-ancestor "upstream/${DEFAULT_BRANCH}" HEAD; then
+            echo "Already up to date with ${UPSTREAM_REPOSITORY}:${DEFAULT_BRANCH}."
+            exit 0
+          fi
+
+          git merge --no-edit "upstream/${DEFAULT_BRANCH}"
+          git remote set-url origin "https://x-access-token:${SYNC_PAT}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "${DEFAULT_BRANCH}"
