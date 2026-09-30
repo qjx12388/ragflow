@@ -607,7 +607,7 @@ func main() {
 
 	// Initialize database. The migrate mode stops here: it needs neither the
 	// downgrade check nor any of the engines started below, so it can run
-	// before any server mode boots (see docker/entrypoint-go.sh and
+	// before any server mode boots (see docker/entrypoint.sh and
 	// docker/launch_backend_service.sh).
 	migrate := *arguments.mode == "migrate"
 	if migrate {
@@ -1674,10 +1674,14 @@ func logTokenizerCounters() {
 	if len(unavailable) > 0 {
 		common.Warn("embedding tokenizers unavailable; models that declare them cannot be ingested until the asset is restored",
 			zap.Strings("unavailable", unavailable),
-			zap.String("hint", "run `uv run ragflow_deps/download_go_deps.py`, or set "+common.EnvModelAssetsDir+" to a directory holding them"))
+			zap.String("hint", "run `uv run ragflow_deps/download_deps.py`, or set "+common.EnvModelAssetsDir+" to a directory holding them"))
 	}
 }
 
+// resolveDeepDocModelDir picks the model directory: the explicit DEEPDOC_MODEL_DIR
+// env, else the RAGFlow default model dir (internal/rag/res/deepdoc),
+// else the assets fetched by ragflow_deps/download_deps.py. The first
+// candidate that actually contains the required weights wins.
 func resolveDeepDocModelDir() string {
 	if v := strings.TrimSpace(common.GetEnv(common.EnvDeepDocModelDir)); v != "" {
 		return v
