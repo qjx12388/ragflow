@@ -113,6 +113,8 @@ export enum LLMFactory {
   Opper = 'Opper',
   DemonRoute = 'Demon Route',
   TrustedRouter = 'TrustedRouter',
+  EmpirioLabs = 'EmpirioLabs AI',
+  AIStupidLevel = 'AI Stupid Level',
 }
 
 // Please lowercase the file name
@@ -208,6 +210,8 @@ export const IconMap = {
   [LLMFactory.CheaperInference]: 'cheaperinference',
   [LLMFactory.Opper]: 'opper',
   [LLMFactory.TrustedRouter]: 'trustedrouter',
+  [LLMFactory.EmpirioLabs]: 'empiriolabs',
+  [LLMFactory.AIStupidLevel]: 'aistupidlevel',
 };
 
 export const ModelTypeToField: Record<string, string> = {
@@ -238,6 +242,9 @@ export const APIMapUrl = {
   [LLMFactory.CheaperInference]: 'https://cheaperinference.com',
   [LLMFactory.Opper]: 'https://platform.opper.ai',
   [LLMFactory.TrustedRouter]: 'https://trustedrouter.com/keys',
+  [LLMFactory.EmpirioLabs]:
+    'https://platform.empiriolabs.ai/dashboard/api-keys',
+  [LLMFactory.AIStupidLevel]: 'https://aistupidlevel.info/router/keys',
   [LLMFactory.MWS]:
     'https://mws.ru/docs/cloud-platform/gpt/general/inference-text.html',
   [LLMFactory.Anthropic]: 'https://console.anthropic.com/settings/keys',

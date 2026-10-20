@@ -60,6 +60,9 @@ var (
 	pdfVisionChatInvoker   = defaultPDFVisionChatInvoker
 )
 
+// maybeDispatchPDFVision handles selected tenant PDF/OCR parsers before generic
+// VLM parsing. A handled result, including an error, must not fall back to the
+// ordinary PDF parser.
 func maybeDispatchPDFVision(
 	ctx context.Context,
 	db *gorm.DB,
@@ -81,6 +84,10 @@ func maybeDispatchPDFVision(
 	layout := getStringOr(setup, "layout_recognizer", "")
 	tenantID := getStringOr(inputs, "tenant_id", "")
 	layoutLower := strings.ToLower(strings.TrimSpace(layout))
+
+	if result, handled, err := maybeDispatchTenantPDFParser(ctx, db, filename, binary, tenantID, setup); handled {
+		return result, true, err
+	}
 
 	monkeySelector := layout
 	if strings.TrimSpace(monkeySelector) == "" {
@@ -661,11 +668,8 @@ func defaultResolvePaddleOCRModelForDispatch(ctx context.Context, db *gorm.DB, t
 	return driver, modelName, apiConfig, err
 }
 
-// dispatchPaddleOCRPdf submits a PDF to the tenant's PaddleOCR OCR model and
-// returns parsed sections. The resolved driver runs the protocol it knows:
-// the cloud "PaddleOCR" driver submits a job and polls the v2/ocr/jobs
-// endpoint, the local "PaddleOCR.local" driver POSTs synchronously to
-// layout-parsing — both mirror the Python paddleocr_parser paths.
+// dispatchPaddleOCRPdf resolves the tenant's cloud or local OCR model and
+// converts its page blocks to the structured PDF parser output.
 func dispatchPaddleOCRPdf(
 	ctx context.Context,
 	db *gorm.DB,
@@ -690,14 +694,9 @@ func dispatchPaddleOCRPdf(
 	if err != nil {
 		return parser.ParseResult{}, fmt.Errorf("parser: PaddleOCR OCRFile: %w", err)
 	}
-	if resp == nil || resp.Text == nil {
-		return parser.ParseResult{}, fmt.Errorf("parser: PaddleOCR returned empty text")
-	}
-	if strings.TrimSpace(*resp.Text) == "" {
-		return parser.ParseResult{}, fmt.Errorf("parser: PaddleOCR returned empty text")
-	}
 
-	return buildMarkdownOCRDispatchResult(*resp.Text), nil
+	result := parser.PaddleOCRPDFResult(ctx, filename, binary, resp)
+	return result, result.Err
 }
 
 // resolveMinerUBaseURL extracts the resolved base URL from a model driver.
