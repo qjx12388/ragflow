@@ -55,8 +55,6 @@ func (p *PDFParser) NormalizeResult(ctx context.Context, filename string, result
 					result.JSON = parsed.JSON
 				}
 			}
-		case result.Text != "":
-			result.JSON = []DocItem{NewTextJSONItem(result.Text)}
 		}
 	}
 	items := make([]DocItem, 0, len(result.JSON))
@@ -128,10 +126,6 @@ func (p *PDFParser) NormalizeResult(ctx context.Context, filename string, result
 			}
 			fields["doc_type_kwd"] = "text"
 		}
-		// ck_type is retired: the content type lives on doc_type_kwd and the
-		// block kind on layout. A legacy raw item can still carry the key, so
-		// drop it here as well — the typed conversion already does.
-		delete(fields, "ck_type")
 		items = appendPDFItem(items, fields)
 	}
 	if droppedPositions > 0 {
@@ -143,7 +137,7 @@ func (p *PDFParser) NormalizeResult(ctx context.Context, filename string, result
 			zap.Int("dropped_rows", droppedPositions))
 	}
 	result.JSON = items
-	result.OutputFormat, result.Markdown, result.Text = "json", "", ""
+	result.OutputFormat, result.Markdown = "json", ""
 	result.File = ensurePDFResultFile(result.File, filename)
 	return result
 }
